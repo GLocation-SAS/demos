@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Préstamo de equipos · Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&amp;family=Nunito+Sans:wght@400;600;700;800&amp;display=swap">
+<link rel="stylesheet" href="recursos/estilos.css">
+</head>
+<body data-pantalla="inicio" data-criterios="I-01 a I-08">
+<div id="cabecera"></div>
+<div class="portada">
+  <div class="portada__fila">
+    <h1>Préstamo de equipos</h1>
+    <p>Mira qué portátiles y videobeams hay disponibles, pídelos por días y deja que recepción lleve el control de cada entrega y devolución.</p>
+  </div>
+</div>
+<main class="contenido" id="contenido">
+  <fieldset class="roles">
+    <legend class="solo-lectores">Elige tu rol</legend>
+    <label class="rol-opcion"><input type="radio" name="rol" value="empleado"><span><strong>Empleado</strong>Consulta equipos y pide préstamos.</span></label>
+    <label class="rol-opcion"><input type="radio" name="rol" value="recepcion"><span><strong>Recepción</strong>Aprueba o rechaza, registra entregas y devoluciones.</span></label>
+    <label class="rol-opcion"><input type="radio" name="rol" value="jefe"><span><strong>Jefe administrativo</strong>Ve qué equipos se prestan más y quién tiene préstamos vencidos.</span></label>
+  </fieldset>
+  <section class="seccion" id="proceso" aria-labelledby="titulo-proceso">
+    <h2 id="titulo-proceso">Recorre el préstamo, paso a paso</h2>
+    <ol class="pasos" id="lista-pasos"></ol>
+    <div class="acciones"><a class="boton" href="pantallas/P01-A01-consultar-equipos.html">Empezar el recorrido</a></div>
+  </section>
+  <p class="texto-2 pequeno contenido--aire"><a id="enlace-revision" href="index.html">Entrar al modo revisión</a></p>
+</main>
+<div id="revision"></div>
+<script src="recursos/datos.js"></script>
+<script src="recursos/prototipo.js"></script>
+</body>
+</html>
