@@ -70,8 +70,8 @@
   function yoNombre() { return yo() ? persona(yo()).nombre : "Sin acceso"; }
   function prestamo(id) { return D.prestamos.filter(function (l) { return l.id === id; })[0]; }
   function esPersonaEmpresa() { return ROL !== "externa"; }
-  // Un préstamo entregado y sin devolver sigue ocupando el equipo hasta hoy aunque ya haya vencido.
-  function ocupadoHasta(l) { return l.estado === "entregada" && l.hasta < D.hoy ? D.hoy : l.hasta; }
+  // RN-18 / D-28: un préstamo entregado y sin devolver ocupa el equipo, también después de la fecha prevista, hasta que recepción registre la devolución.
+  function ocupadoHasta(l) { return l.estado === "entregada" ? "9999-12-31" : l.hasta; }
   function ocupante(equipoId, desde, hasta, ignorarId) {
     return D.prestamos.filter(function (l) {
       return l.equipo === equipoId && l.id !== ignorarId && (l.estado === "aprobada" || l.estado === "entregada") && l.desde <= hasta && desde <= ocupadoHasta(l);
@@ -211,12 +211,12 @@
     return a;
   }
   function persona2(l) { return persona(l.persona).nombre; }
-  function estadoPrestamo(l) {
+  function estadoPrestamo(l, comoPrestamo) {
     if (l.estado === "pendiente") return insignia("aviso", D.textos.pendiente.charAt(0).toUpperCase() + D.textos.pendiente.slice(1), "reloj");
-    if (l.estado === "aprobada") return insignia("exito", "Aprobada", "check");
+    if (l.estado === "aprobada") return insignia("exito", comoPrestamo ? "Aprobado, sin entregar" : "Aprobada", "check");
     if (l.estado === "rechazada") return insignia("error", "Rechazada", "x");
-    if (l.estado === "entregada") return atraso(l) > 0 ? insignia("error", "Vencido hace " + plural(atraso(l), "día", "días"), "alerta") : insignia("info", "Entregada", "caja");
-    return insignia("exito", "Devuelta", "devolver");
+    if (l.estado === "entregada") return atraso(l) > 0 ? insignia("error", "Vencido: " + plural(atraso(l), "día", "días") + " de atraso", "alerta") : insignia("info", "Entregado", "caja");
+    return insignia("exito", "Devuelto", "devolver");
   }
   // Devuelve true si la pantalla ya quedó pintada (sin acceso, cargando o error genérico).
   function estadosComunes(v, id, errorGenerico) {
@@ -272,10 +272,17 @@
       pie.appendChild(el("a", { clase: "boton", href: PREF + P["P01-A02"].archivo + "?equipo=" + e.id + "&desde=" + desde + "&hasta=" + hasta, "aria-label": "Pedir prestado: " + e.nombre, texto: "Pedir prestado" }));
     } else {
       pie.appendChild(insignia("info", "No disponible", "reloj"));
-      if (verQuien && oc.estado === "entregada") {
+      // CA-001-04 / D-26: el empleado ve la fecha de devolución prevista, nunca la persona.
+      if (verQuien) {
         cuerpo.push(el("p", { clase: "pequeno texto-2" }, [el("strong", { texto: "Lo tiene: " }), persona2(oc)]));
         cuerpo.push(el("p", { clase: "pequeno texto-2" }, [el("strong", { texto: "Devolución prevista: " }), fechaCorta(oc.hasta)]));
+        // CA-001-39 (aprobado, sin entregar) y CA-001-46 (vencido, solo en la lista de recepción, sin lista aparte).
+        if (oc.estado === "aprobada") pie.appendChild(insignia("exito", "Aprobado, sin entregar", "check"));
+        else if (ROL === "recepcion" && atraso(oc) > 0) pie.appendChild(insignia("error", "Vencido: " + plural(atraso(oc), "día", "días") + " de atraso", "alerta"));
+        else pie.appendChild(insignia("aviso", "Prestado", "caja"));
         pie.appendChild(el("a", { clase: "boton boton--secundario", href: pagina() + "?desde=" + desde + "&hasta=" + hasta + "&prestamo=" + oc.id, "aria-label": "Ver el préstamo de " + e.nombre, texto: "Ver préstamo" }));
+      } else {
+        cuerpo.push(el("p", { clase: "pequeno texto-2" }, [el("strong", { texto: "Devolución prevista: " }), fechaCorta(oc.hasta)]));
       }
     }
     return el("article", { clase: "tarjeta equipo" + (oc ? " equipo--prestado" : ""), "aria-label": e.nombre }, [
@@ -302,7 +309,7 @@
       var p = persona(det.persona);
       v.appendChild(el("section", { clase: "seccion", "aria-labelledby": "t-det" }, [el("h2", { id: "t-det", texto: "Préstamo " + det.id }),
         el("div", { clase: "resumen" }, [el("dl", {}, [el("dt", { texto: "Equipo" }), el("dd", { texto: equipo(det.equipo).nombre }), el("dt", { texto: "Persona" }), el("dd", { texto: p.nombre }), el("dt", { texto: "Correo" }), el("dd", { texto: p.correo }),
-          el("dt", { texto: "Días" }), el("dd", { texto: rango(det) }), el("dt", { texto: "Estado" }), el("dd", { nodo: null }, [estadoPrestamo(det)])])])]));
+          el("dt", { texto: "Día de inicio" }), el("dd", { texto: fechaLarga(det.desde) }), el("dt", { texto: "Devolución prevista" }), el("dd", { texto: fechaLarga(det.hasta) }), el("dt", { texto: "Estado" }), el("dd", { nodo: null }, [estadoPrestamo(det, true)])])])]));
     }
     var lista = ESTADO === "vacio" ? [] : D.equipos;
     if (!lista.length) { v.appendChild(el("div", { clase: "seccion" }, [vacio("laptop", D.textos.sinEquipos)])); v.appendChild(siguiente("P01-A02")); return; }
@@ -359,9 +366,9 @@
       campo("equipo", "Equipo", sel, null, err && err.campo === "equipo" ? err.texto : null),
       el("div", { clase: "filas-campos" }, [
         campo("desde", "Día de inicio", inD, null, err && err.campo === "desde" ? err.texto : null),
-        campo("hasta", "Día de devolución", inH, "Máximo " + D.maxDias + " días hábiles (valor de ejemplo, configurable).", err && err.campo === "hasta" ? err.texto : null)
+        campo("hasta", "Día de devolución", inH, "Ejemplo: máximo " + D.maxDias + " días laborales (lunes a viernes), contando el día de inicio y el de devolución. El valor real es configurable.", err && err.campo === "hasta" ? err.texto : null)
       ]),
-      el("p", { clase: "resumen" }, [el("strong", { texto: "Días del préstamo (lunes a viernes): " }), dias]),
+      el("p", { clase: "resumen" }, [el("strong", { texto: "Días laborales del préstamo (incluye inicio y devolución): " }), dias]),
       el("div", { clase: "acciones" }, [el("button", { clase: "boton", type: "submit", texto: "Enviar solicitud" }), boton("Volver a consultar equipos", PREF + P["P01-A01"].archivo, "boton--secundario")])
     ]);
     function actualizar() { dias.textContent = inD.value && inH.value && inH.value >= inD.value ? String(habiles(inD.value, inH.value)) : "—"; }
@@ -380,11 +387,12 @@
     if (estadosComunes(v, "P01-A03", true)) return;
     v.appendChild(el("p", { clase: "texto-2" }, ["Solicitudes y préstamos de ", el("strong", { texto: yoNombre() }), ". Aquí no se ven los de otras personas."]));
     if (q.get("nueva") === "1" || ESTADO === "exito") v.appendChild(msgExito("Tu solicitud quedó " + D.textos.pendiente + " y aparece en esta lista."));
-    var mias = ESTADO === "vacio" ? [] : D.prestamos.filter(function (l) { return l.persona === yo(); }).sort(function (a, b) { return a.desde < b.desde ? 1 : -1; });
+    var mias = ESTADO === "vacio" ? [] : D.prestamos.filter(function (l) { return l.persona === yo(); }).sort(function (a, b) { return a.creada < b.creada ? 1 : -1; });
     if (!mias.length) { v.appendChild(vacio("lista", D.textos.sinSolicitudes, "Consultar equipos", PREF + P["P01-A01"].archivo)); v.appendChild(siguiente("P01-A02")); return; }
-    v.appendChild(tabla(["Equipo", "Días", "Estado", "Detalle"], mias.map(function (l) {
-      var det = l.estado === "rechazada" ? "Motivo: " + l.motivo : (l.estado === "entregada" ? (atraso(l) > 0 ? "Debía volver el " + fechaCorta(l.hasta) : "Devuélvelo el " + fechaCorta(l.hasta)) : (l.estado === "devuelta" ? "Devuelto el " + fechaCorta(l.devolucion) : "—"));
-      return [equipo(l.equipo).nombre, rango(l), { nodo: estadoPrestamo(l) }, det];
+    v.appendChild(el("p", { clase: "texto-2 pequeno", texto: "De la más reciente a la más antigua." }));
+    v.appendChild(tabla(["Equipo", "Día de inicio", "Devolución prevista", "Estado", "Detalle"], mias.map(function (l) {
+      var det = l.estado === "rechazada" ? "Motivo: " + l.motivo : (l.estado === "devuelta" ? "Devuelto el " + fechaCorta(l.devolucion) : "—");
+      return [equipo(l.equipo).nombre, fechaCorta(l.desde), fechaCorta(l.hasta), { nodo: estadoPrestamo(l) }, det];
     })));
     v.appendChild(siguiente("P01-A02", "Pedir otro equipo"));
   };
@@ -501,11 +509,11 @@
     var e = equipo(p.equipo), pe = persona(p.persona);
     var cuerpoTexto = D.textos.recordatorio.replace("{EQUIPO}", e.nombre).replace("{FECHA}", p.hasta);
     v.appendChild(el("article", { clase: "tarjeta correo", "aria-label": "Recordatorio de vencimiento" }, [
-      el("div", { clase: "correo__cab" }, [icono("correo", "icono--lg"), el("div", {}, [el("p", { clase: "equipo__codigo", texto: "CORREO DE LA EMPRESA · " + D.hoy }), el("h2", { texto: "Recordatorio: devuelve " + e.nombre })])]),
+      el("div", { clase: "correo__cab" }, [icono("correo", "icono--lg"), el("div", {}, [el("p", { clase: "equipo__codigo", texto: "CORREO DE LA EMPRESA · " + D.hoy }), el("h2", { texto: "Asunto: " + D.textos.asuntoRecordatorio.replace("{EQUIPO}", e.nombre) })])]),
       el("div", { clase: "correo__cuerpo" }, [
+        el("p", { clase: "texto-2 pequeno" }, [el("strong", { texto: "De: " }), D.textos.remitenteRecordatorio]),
         el("p", { clase: "texto-2 pequeno" }, [el("strong", { texto: "Para: " }), pe.nombre + " <" + pe.correo + ">"]),
-        el("p", { texto: cuerpoTexto }),
-        insignia("error", "Vencido hace " + plural(atraso(p), "día", "días"), "alerta")
+        el("p", { texto: cuerpoTexto })
       ])
     ]));
     v.appendChild(el("section", { clase: "seccion", "aria-labelledby": "t-como" }, [el("h2", { id: "t-como", texto: "Cómo funciona el aviso" }),
@@ -536,6 +544,7 @@
       });
       sec1.appendChild(el("div", { clase: "tarjeta" }, [ol]));
     }
+    if (!vac) sec1.appendChild(el("p", { clase: "texto-2 pequeno", texto: "Acumulado, sin filtro de periodo. Solo equipos y número de préstamos." }));
     v.appendChild(sec1);
     var venc = vac ? [] : vencidos();
     var sec2 = el("section", { clase: "seccion", "aria-labelledby": "t-venc" }, [el("h2", { id: "t-venc" }, ["Préstamos vencidos ", insignia(venc.length ? "error" : "exito", String(venc.length))])]);
@@ -553,10 +562,13 @@
       ["CA-001-01", "Un equipo libre aparece como disponible (12 al 13 nov)", { rol: "empleado", desde: "2026-11-12", hasta: "2026-11-13" }],
       ["CA-001-02", "Videobeam 01 aprobado del 12 al 14: no disponible el 14", { rol: "empleado", desde: "2026-11-14", hasta: "2026-11-14" }],
       ["CA-001-03", "Sin fechas se consulta hoy", { rol: "empleado", desde: null, hasta: null }],
-      ["CA-001-04", "El empleado ve «No disponible» sin nombre ni correo", { rol: "empleado" }],
-      ["CA-001-05", "Recepción ve quién lo tiene y la devolución prevista", { rol: "recepcion" }],
+      ["CA-001-04", "El empleado ve «No disponible» con la devolución prevista, sin nombre ni correo", { rol: "empleado" }],
+      ["CA-001-05", "Recepción y jefe ven quién lo tiene y la devolución prevista", { rol: "recepcion" }],
+      ["CA-001-39", "Recepción ve el Portátil 03 «aprobado, sin entregar», con nombre y fecha", { rol: "recepcion" }],
+      ["CA-001-40", "Un equipo vencido sin devolver no está disponible en fechas posteriores (Portátil 04)", { rol: "empleado", desde: "2026-11-16", hasta: "2026-11-17" }],
+      ["CA-001-46", "Recepción ve el Portátil 04 marcado como vencido, con días de atraso, nombre y fecha prevista; sin lista aparte", { rol: "recepcion" }],
       ["CA-001-06", "Persona externa: sin acceso", { rol: "externa" }],
-      ["CA-001-36", "Recepción abre el préstamo: solo nombre y correo", { rol: "recepcion", prestamo: "L-101" }]
+      ["CA-001-36", "Recepción abre el préstamo: nombre, correo, equipo, fechas y estado", { rol: "recepcion", prestamo: "L-101" }]
     ],
     "P01-A02": [
       ["CA-001-07", "Solicitud válida: pendiente de aprobación", { rol: "empleado", enviar: "1", equipo: "P02", desde: "2026-11-16", hasta: "2026-11-18" }],
@@ -571,14 +583,19 @@
       ["CA-001-07", "La solicitud pendiente aparece en «Mis solicitudes»", { rol: "empleado" }],
       ["CA-001-13", "La solicitud aprobada se ve como aprobada", { rol: "empleado" }],
       ["CA-001-14", "La solicitud rechazada muestra el motivo", { rol: "empleado" }],
-      ["CA-001-37", "El empleado ve solo lo suyo, con su nombre, y nada de otras personas", { rol: "empleado" }]
+      ["CA-001-37", "El empleado ve solo lo suyo, con su nombre, y nada de otras personas", { rol: "empleado" }],
+      ["CA-001-41", "De la más reciente a la más antigua, con equipo, inicio, devolución y estado", { rol: "empleado" }],
+      ["CA-001-42", "Préstamo entregado con su devolución prevista (Videobeam 02)", { rol: "empleado" }],
+      ["CA-001-43", "Préstamo devuelto con su fecha de devolución (Portátil 06)", { rol: "empleado" }],
+      ["CA-001-44", "Préstamo vencido con sus días de atraso (Portátil 04)", { rol: "empleado" }]
     ],
     "P01-A04": [
       ["CA-001-13", "Aprobar una solicitud", { rol: "recepcion", resultado: "aprobada", id: "L-109" }],
       ["CA-001-14", "Rechazar con motivo", { rol: "recepcion", resultado: "rechazada", id: "L-109", motivo: "El equipo está reservado para una capacitación" }],
       ["CA-001-15", "Rechazar sin motivo", { rol: "recepcion", resultado: "rechazada", id: "L-109", motivo: "" }],
       ["CA-001-16", "Aprobar con cruce de fechas", { rol: "recepcion", resultado: "aprobada", id: "L-103" }],
-      ["CA-001-17", "Resolver una solicitud ya aprobada", { rol: "recepcion", resultado: "rechazada", id: "L-102", motivo: "Ya no se necesita" }],
+      ["CA-001-17", "Rechazar una solicitud ya aprobada", { rol: "recepcion", resultado: "rechazada", id: "L-102", motivo: "Ya no se necesita" }],
+      ["CA-001-45", "Aprobar una solicitud ya rechazada", { rol: "recepcion", resultado: "aprobada", id: "L-111" }],
       ["CA-001-18", "Empleado: se le impide", { rol: "empleado" }],
       ["CA-001-18", "Jefe administrativo: se le impide", { rol: "jefe" }]
     ],
@@ -594,14 +611,14 @@
       ["CA-001-24", "Jefe administrativo: se le impide", { rol: "jefe" }]
     ],
     "P01-A07": [
-      ["CA-001-25", "El recordatorio con el texto del criterio", { rol: "empleado" }],
+      ["CA-001-25", "El correo: asunto «Préstamo vencido: …», remitente «Préstamo de equipos» y el mensaje del criterio", { rol: "empleado" }],
       ["CA-001-26", "No se envía el día de la devolución prevista (regla; ver «Cómo funciona el aviso»)", null],
       ["CA-001-27", "No se envía si ya se devolvió (regla)", null],
       ["CA-001-28", "No hay segundo recordatorio (regla)", null],
       ["CA-001-29", "Solo lo recibe quien tiene el préstamo vencido (regla)", null]
     ],
     "P01-A08": [
-      ["CA-001-30", "Equipos más prestados, de mayor a menor", { rol: "jefe" }],
+      ["CA-001-30", "Equipos más prestados, acumulado y sin filtro de periodo, de mayor a menor", { rol: "jefe" }],
       ["CA-001-38", "El ranking muestra solo equipo y número de préstamos, sin nombre ni correo", { rol: "jefe" }],
       ["CA-001-31", "Préstamos vencidos con nombre y correo de la persona, equipo, fecha prevista y días de atraso (hay uno de 2 días)", { rol: "jefe" }],
       ["CA-001-32", "Un préstamo devuelto con atraso no aparece como vencido (el Portátil 06 del 4 al 6 nov)", { rol: "jefe" }],

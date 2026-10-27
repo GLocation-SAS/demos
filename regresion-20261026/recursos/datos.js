@@ -43,21 +43,21 @@ window.DATOS = {
   ],
 
   // Solicitudes y préstamos. estado: pendiente | aprobada | rechazada | entregada | devuelta
-  // desde / hasta = día de inicio y día de devolución prevista. Cubren todos los casos de los criterios.
+  // creada = día en que se pidió (orden de «Mis solicitudes», CA-001-41). desde / hasta = día de inicio y día de devolución prevista. Cubren todos los casos de los criterios.
   prestamos: [
-    { id: "L-101", equipo: "P01", persona: "p2", desde: "2026-11-11", hasta: "2026-11-13", estado: "entregada", entrega: "2026-11-11", horaEntrega: "09:15" },
-    { id: "L-102", equipo: "P03", persona: "p3", desde: "2026-11-12", hasta: "2026-11-13", estado: "aprobada" },
-    { id: "L-103", equipo: "P03", persona: "p4", desde: "2026-11-13", hasta: "2026-11-14", estado: "pendiente" },
-    { id: "L-104", equipo: "V01", persona: "p1", desde: "2026-11-12", hasta: "2026-11-14", estado: "aprobada" },
-    { id: "L-105", equipo: "P04", persona: "p1", desde: "2026-11-09", hasta: "2026-11-11", estado: "entregada", entrega: "2026-11-09", horaEntrega: "10:20" },
-    { id: "L-106", equipo: "P05", persona: "p4", desde: "2026-11-06", hasta: "2026-11-09", estado: "entregada", entrega: "2026-11-06", horaEntrega: "16:00" },
-    { id: "L-107", equipo: "V03", persona: "p5", desde: "2026-11-09", hasta: "2026-11-10", estado: "entregada", entrega: "2026-11-09", horaEntrega: "11:30" },
-    { id: "L-108", equipo: "V02", persona: "p6", desde: "2026-11-12", hasta: "2026-11-12", estado: "entregada", entrega: "2026-11-12", horaEntrega: "08:30" },
-    { id: "L-109", equipo: "P02", persona: "p5", desde: "2026-11-16", hasta: "2026-11-17", estado: "pendiente" },
-    { id: "L-110", equipo: "P06", persona: "p1", desde: "2026-11-16", hasta: "2026-11-17", estado: "pendiente" },
-    { id: "L-111", equipo: "P02", persona: "p1", desde: "2026-11-12", hasta: "2026-11-13", estado: "rechazada", motivo: "El equipo está reservado para una capacitación" },
-    { id: "L-112", equipo: "P06", persona: "p1", desde: "2026-11-02", hasta: "2026-11-03", estado: "devuelta", entrega: "2026-11-02", devolucion: "2026-11-03" },
-    { id: "L-113", equipo: "P06", persona: "p3", desde: "2026-11-04", hasta: "2026-11-06", estado: "devuelta", entrega: "2026-11-04", devolucion: "2026-11-09" }
+    { id: "L-101", creada: "2026-11-09", equipo: "P01", persona: "p2", desde: "2026-11-11", hasta: "2026-11-13", estado: "entregada", entrega: "2026-11-11", horaEntrega: "09:15" },
+    { id: "L-102", creada: "2026-11-10", equipo: "P03", persona: "p3", desde: "2026-11-12", hasta: "2026-11-13", estado: "aprobada" },
+    { id: "L-103", creada: "2026-11-12", equipo: "P03", persona: "p4", desde: "2026-11-13", hasta: "2026-11-14", estado: "pendiente" },
+    { id: "L-104", creada: "2026-11-10", equipo: "V01", persona: "p1", desde: "2026-11-12", hasta: "2026-11-14", estado: "aprobada" },
+    { id: "L-105", creada: "2026-11-06", equipo: "P04", persona: "p1", desde: "2026-11-09", hasta: "2026-11-11", estado: "entregada", entrega: "2026-11-09", horaEntrega: "10:20" },
+    { id: "L-106", creada: "2026-11-04", equipo: "P05", persona: "p4", desde: "2026-11-06", hasta: "2026-11-09", estado: "entregada", entrega: "2026-11-06", horaEntrega: "16:00" },
+    { id: "L-107", creada: "2026-11-06", equipo: "V03", persona: "p5", desde: "2026-11-09", hasta: "2026-11-10", estado: "entregada", entrega: "2026-11-09", horaEntrega: "11:30" },
+    { id: "L-108", creada: "2026-11-11", equipo: "V02", persona: "p1", desde: "2026-11-12", hasta: "2026-11-12", estado: "entregada", entrega: "2026-11-12", horaEntrega: "08:30" },
+    { id: "L-109", creada: "2026-11-12", equipo: "P02", persona: "p5", desde: "2026-11-16", hasta: "2026-11-17", estado: "pendiente" },
+    { id: "L-110", creada: "2026-11-12", equipo: "P06", persona: "p1", desde: "2026-11-16", hasta: "2026-11-17", estado: "pendiente" },
+    { id: "L-111", creada: "2026-11-09", equipo: "P02", persona: "p1", desde: "2026-11-12", hasta: "2026-11-13", estado: "rechazada", motivo: "El equipo está reservado para una capacitación" },
+    { id: "L-112", creada: "2026-11-01", equipo: "P06", persona: "p1", desde: "2026-11-02", hasta: "2026-11-03", estado: "devuelta", entrega: "2026-11-02", devolucion: "2026-11-03" },
+    { id: "L-113", creada: "2026-11-02", equipo: "P06", persona: "p3", desde: "2026-11-04", hasta: "2026-11-06", estado: "devuelta", entrega: "2026-11-04", devolucion: "2026-11-09" }
   ],
 
   // Préstamos entregados antes de los que figuran arriba (acumulado de ejemplo para el resumen del jefe).
@@ -80,6 +80,8 @@ window.DATOS = {
     recordatorio: "Tu préstamo del {EQUIPO} venció el {FECHA}. Devuélvelo en recepción.", // CA-001-25
     sinVencidos: "No hay préstamos vencidos",                                       // CA-001-33
     // [propuesta]
+    asuntoRecordatorio: "Préstamo vencido: {EQUIPO}",                              // CA-001-25 (D-32)
+    remitenteRecordatorio: "Préstamo de equipos",                                 // CA-001-25 (D-32)
     errorCarga: "No se pudo cargar la información. Intenta de nuevo.",
     sinAccesoExterna: "Esta aplicación es solo para personas de la empresa.",
     sinAccesoRecepcion: "Solo recepción puede hacer esto.",
