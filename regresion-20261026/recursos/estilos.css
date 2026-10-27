@@ -220,7 +220,8 @@ tbody tr:last-child td { border-bottom: 0; }
 .portada h1 { color: var(--sobre-primario); font-size: var(--t-6); }
 .portada p { max-width: 38rem; font-size: var(--t-4); margin-top: var(--e-3); }
 .roles { display: grid; gap: var(--e-3); grid-template-columns: 1fr; margin-top: calc(var(--e-6) * -1); }
-@media (min-width: 48rem) { .roles { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 48rem) { .roles { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 80rem) { .roles { grid-template-columns: repeat(4, 1fr); } }
 .rol-opcion { display: flex; gap: var(--e-3); align-items: flex-start; background: var(--superficie); border: 2px solid var(--borde); border-radius: var(--radio); padding: var(--e-4); cursor: pointer; min-height: var(--objetivo); box-shadow: var(--sombra); }
 .rol-opcion:has(input:checked) { border-color: var(--color-primario); background: var(--color-primario-suave); }
 .rol-opcion input { width: 1.25rem; height: 1.25rem; margin-top: var(--e-1); accent-color: var(--color-primario); }
@@ -243,3 +244,8 @@ tbody tr:last-child td { border-bottom: 0; }
 body:not(.modo-revision) .suposicion::after { content: none; }
 fieldset.roles { border: 0; padding: 0; margin-inline: 0; min-width: 0; }
 .contenido--aire { margin-top: var(--e-7); }
+.campo textarea { font: inherit; padding: var(--e-2) var(--e-3); border: 1px solid var(--borde-campo); border-radius: var(--radio-sm); background: var(--superficie); color: var(--texto); width: 100%; max-width: 26rem; }
+.campo--error textarea { border: 2px solid var(--error); }
+.revision__casos { margin: var(--e-2) 0; padding-left: var(--e-5); }
+.revision__casos li { margin-bottom: var(--e-1); }
+.revision__casos a { display: inline-block; padding: var(--e-1) 0; }
